@@ -1,0 +1,44 @@
+[http]
+  [http.routers]
+    [http.routers.service]
+      rule = "Host(`{{ service_domain }}`) && PathPrefix(`/service`)"
+      entrypoints = ["http", "https"]
+      service = "service"
+      middlewares = [
+        "stripService",
+        "serviceApiKey"
+      ]
+{% if common_api_service_url is defined %}
+    [http.routers.common]
+      rule = "Host(`{{ service_domain }}`) && PathPrefix(`/common`)"
+      entrypoints = ["http", "https"]
+      service = "common"
+      middlewares = [
+        "stripCommon"
+      ]
+{% endif %}
+
+  [http.middlewares]
+    [http.middlewares.stripService.stripPrefix]
+      prefixes = ["/service", ""]
+
+    [http.middlewares.stripCommon.stripPrefix]
+      prefixes = ["/common", ""]
+
+    [http.middlewares.serviceApiKey.headers]
+      [http.middlewares.serviceApiKey.headers.customRequestHeaders]
+          apikey = "{{ service_api_key }}"
+
+      
+
+[http.services]
+  [http.services.service]
+    [http.services.service.loadbalancer]
+      [[http.services.service.loadbalancer.servers]]
+        url = "http://service_api_url"
+{% if common_api_service_url is defined %}
+  [http.services.common]
+    [http.services.common.loadbalancer]
+      [[http.services.common.loadbalancer.servers]]
+        url = "http://common_api_url"
+{% endif %}

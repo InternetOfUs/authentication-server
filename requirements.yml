@@ -1,0 +1,2 @@
+roles:
+  - src: https://github.com/StefanoTavonatti/ansible-kong.git

@@ -1,0 +1,165 @@
+version: '2.1'
+
+services:
+
+  kong-migrations:
+    image: library/kong:{{ kong_version }}
+    container_name: {{ kong_container_name }}_migrations
+    command: kong migrations bootstrap
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: {{ kong_postgres_database }}
+      KONG_PG_PASSWORD: {{ kong_postgres_password }}
+      KONG_PG_USER: {{ kong_postgres_username }}
+      KONG_PG_HOST: {{ kong_container_name }}_db
+    networks:
+      - {{ service_network }}
+    restart: on-failure
+
+  kong-migrations-up:
+    image: library/kong:{{ kong_version }}
+    command: kong migrations up && kong migrations finish
+    container_name: {{ kong_container_name }}_migrations_up
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: {{ kong_postgres_database }}
+      KONG_PG_PASSWORD: {{ kong_postgres_password }}
+      KONG_PG_USER: {{ kong_postgres_username }}
+      KONG_PG_HOST: {{ kong_container_name }}_db
+    networks:
+      - {{ service_network }}
+    restart: on-failure
+
+  kong:
+    image: library/kong:{{ kong_version }}
+    user: {{ kong_user }}
+    restart: unless-stopped
+    container_name: {{ kong_container_name }}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: '0.0.0.0:8001'
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: {{ kong_postgres_database }}
+      KONG_PG_PASSWORD: {{ kong_postgres_password }}
+      KONG_PG_USER: {{ kong_postgres_username }}
+      KONG_PG_HOST: {{ kong_container_name }}_db
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+    networks:
+      - {{ service_network }}
+      - {{ kong_proxy_network }}
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    ports:
+      - 127.0.0.1:{{ kong_admin_port }}:8001
+
+  db:
+    image: postgres:{{ kong_postgres_version }}
+    container_name: {{ kong_container_name }}_db
+    environment:
+      POSTGRES_DB: {{ kong_postgres_database }}
+      POSTGRES_PASSWORD: {{ kong_postgres_password }}
+      POSTGRES_USER: {{ kong_postgres_username }}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "{{ kong_postgres_username }}"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - {{ service_network }}
+    volumes:
+      - {{ kong_volume }}:/var/lib/postgresql/data
+
+{% if kong_deploy_konga is defined and kong_deploy_konga is true %}
+  konga_db:
+      image: postgres:10.4
+      container_name: {{ kong_konga_container_name }}_db
+      environment:
+        POSTGRES_PASSWORD: {{ kong_postgres_password }}
+        POSTGRES_USER: {{ kong_postgres_username }}
+      healthcheck:
+        test: ["CMD", "pg_isready", "-U", "{{ kong_postgres_username }}"]
+        interval: 30s
+        timeout: 30s
+        retries: 3
+      restart: unless-stopped
+      stdin_open: true
+      tty: true
+      networks:
+        - {{ service_network }}
+      volumes:
+        - {{ kong_konga_volume }}:/var/lib/postgresql/data
+
+  konga-prepare:
+    image: pantsel/konga:0.14.6
+    container_name: {{ kong_konga_container_name }}_prepare
+    command: "-c prepare -a postgres -u postgresql://{{ kong_postgres_username }}:{{ kong_postgres_password }}@{{ kong_konga_container_name }}_db:5432/konga_db"
+    networks:
+      - {{ service_network }}
+    restart: on-failure
+    depends_on:
+      konga_db:
+        condition: service_healthy
+
+  konga:
+    image: pantsel/konga:0.14.6
+    container_name: {{ kong_konga_container_name }}
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8085
+      TOKEN_SECRET: {{ kong_konga_token }}
+      NODE_ENV: production
+      DB_ADAPTER: postgres
+      DB_HOST: {{ kong_konga_container_name }}_db
+      DB_USER: {{ kong_postgres_username }}
+      DB_PASSWORD: {{ kong_postgres_password }}
+      DB_DATABASE: konga_db
+      BASE_URL: {{ kong_konga_path }}/
+    networks:
+      - {{ service_network }}
+    depends_on:
+      konga_db:
+        condition: service_healthy
+{% endif %}
+
+  traefik_api_gateway:
+    image: traefik:2.2
+    container_name: {{ apigateway_container_name }}
+    hostname: {{ apigateway_container_name }}
+    restart: unless-stopped
+    volumes:
+      - ./config:/etc/traefik
+      - ./traefik/data:/data/
+    networks:
+      - {{ service_network }}
+
+networks:
+  {{ service_network }}:
+    external: true
+  {{ kong_proxy_network }}:
+    external: true
+
+volumes:
+  {{ kong_volume }}:
+    external: true
+{% if kong_deploy_konga is defined and kong_deploy_konga is true %}
+  {{ kong_konga_volume }}:
+    external: true
+{% endif %}

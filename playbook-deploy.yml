@@ -1,0 +1,107 @@
+---
+- hosts: kong
+  name: Deploy WeNet Kong.
+  vars:
+
+    docker_compose_folder: "/opt/deployments/authentication_{{ service_environment }}/"
+    docker_file_template: templates/docker-compose-kong.yml.j2
+    docker_path_to_copy:
+      - local_template: traefik.toml.j2
+        remote_path: "{{docker_compose_folder}}/config"
+        remote_file_name: traefik.toml
+      - local_template: apigateway.toml.j2
+        remote_path: "{{docker_compose_folder}}/config/config"
+        remote_file_name: /apigateway.toml
+    docker_networks:
+      - "{{ service_network }}"
+    docker_volumes:
+      - "{{ kong_volume }}"
+      - "{{ kong_konga_volume }}"
+    docker_services:
+      - kong-migrations
+      - kong-migrations-up
+      - kong
+      - traefik_api_gateway
+      - konga
+      - konga_db
+      - konga-prepare
+    docker_compose_dest_filename: docker-compose.yml
+  tasks:
+    - name: Verify presence of docker folder (and create if missing)
+      file:
+        path: "{{ docker_compose_folder }}"
+        group: "{{ file_and_dir_group }}"
+        state: directory
+
+    - name: Setup docker-compose file
+      template:
+        src: "{{ docker_file_template }}"
+        dest: "{{ docker_compose_folder }}/{{ docker_compose_dest_filename }}"
+        group: "{{ file_and_dir_group }}"
+
+    - name: Verify networks presence
+      docker_network:
+        name: "{{ item }}"
+        state: present
+      with_items: "{{ docker_networks }}"
+      when: docker_networks is defined and ( docker_networks | length > 0 )
+
+    - name: Verify volumes presence
+      docker_volume:
+        name: "{{ item }}"
+        state: present
+      with_items: "{{ docker_volumes }}"
+      when: docker_volumes is defined and ( docker_volumes | length > 0 )
+
+    - name: Verify destination folder existance
+      file:
+        path: "{{ item.remote_path }}"
+        group: "{{ file_and_dir_group }}"
+        state: directory
+      with_items: "{{ docker_path_to_copy }}"
+      when: docker_path_to_copy is defined and ( docker_path_to_copy | length > 0 )
+
+    - name: Copy required files
+      template:
+        src: "{{ item.local_template }}"
+        dest: "{{ item.remote_path }}/{{ item.remote_file_name }}"
+        group: "{{ file_and_dir_group }}"
+      with_items: "{{ docker_path_to_copy }}"
+      when: docker_path_to_copy is defined and ( docker_path_to_copy | length > 0 )
+
+    - name: Verify destination folder existance
+      file:
+        path: "{{ item.remote_dest }}"
+        group: "{{ file_and_dir_group }}"
+        state: directory
+      with_items: "{{ docker_folders_to_copy }}"
+      when: docker_folders_to_copy is defined and ( docker_folders_to_copy | length > 0 )
+
+    - name: Copy required folders
+      copy:
+        src: "{{ item.local_src }}"
+        dest: "{{ item.remote_dest }}"
+        group: "{{ file_and_dir_group }}"
+      with_items: "{{ docker_folders_to_copy }}"
+      when: docker_folders_to_copy is defined and ( docker_folders_to_copy | length > 0 )
+
+    - name: Copy Traefik configuration
+      become: "{{ traefik_become }}"
+      become_method: su
+      template:
+        src: "{{ traefik_template_config_file_path }}"
+        dest: "{{ traefik_config_folder }}/{{ traefik_config_file_name }}"
+        group: "{{ file_and_dir_group }}"
+      when: traefik_template_config_file_path is defined and traefik_template_config_file_path is not none
+
+    - name: Run images
+      docker_compose:
+        project_src: "{{ docker_compose_folder }}"
+        state: present
+        services: "{{ docker_services }}"
+        recreate: "{{ docker_images_recreate }}"
+        pull: "{{ docker_images_pull }}"
+        files: ["{{ docker_compose_dest_filename }}"]
+      when: docker_services|length > 0
+
+

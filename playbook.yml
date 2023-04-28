@@ -1,0 +1,12 @@
+---
+
+
+
+
+
+---
+- name: Deploy Authentication Server.
+  import_playbook: playbook-deploy.yml
+
+- name: Configure Authentication Server.
+  import_playbook: playbook-configure.yml

@@ -1,0 +1,86 @@
+- hosts: kong
+  name: Apply Kong configurations for Konga.
+  vars:
+    kong_version: 2.0.1
+    kong_use_old_config_format: false
+    kong_admin_api_url: "{{ kong_localhost_api_url }}"
+  roles:
+    - role: ansible-kong
+      kong_task: service
+      kong_service_config:
+        name: konga-dashboard
+        url: http://{{ kong_konga_container_name }}.{{ service_network }}:8085
+      when: kong_deploy_konga is defined and kong_deploy_konga is true
+
+    - role: ansible-kong
+      kong_task: route
+      kong_route_config:
+        name: "{{ kong_konga_route_name }}"
+        service: "{{ kong_konga_service_name }}"
+        paths: [ "{{ kong_konga_path }}" ]
+        hosts: [ "{{ kong_konga_host }}" ]
+        strip_path: true
+        preserve_host: true
+      when: kong_deploy_konga is defined and kong_deploy_konga is true
+
+- hosts: kong
+  name: Apply Kong configurations for services, routes.
+  vars:
+    kong_version: 2.0.1
+    kong_use_old_config_format: false
+    kong_admin_api_url: "{{ kong_localhost_api_url }}"
+  tasks:
+    - name: Configure Kong services.
+      include_role:
+        name: ansible-kong
+      vars:
+        kong_task: service
+        kong_delete_service_obj: false
+        kong_service_config:
+          name: "{{ service_entry.name }}"
+          url: "{{ service_entry.url }}"
+      with_items: "{{ kong_service_mapping }}"
+      loop_control:
+        loop_var: service_entry
+
+    - name: Configure Kong routes.
+      include_role:
+        name: ansible-kong
+      vars:
+        kong_task: route
+        kong_route_config:
+          name: "{{ route_entry.name }}"
+          service: "{{ route_entry.service }}"
+          paths: [ "{{ route_entry.path }}" ]
+          hosts: [ "{{ route_entry.host }}" ]
+          preserve_host: "{{ route_entry.preserve_host }}"
+          strip_path: "{{ route_entry.strip_path }}"
+      with_items: "{{ kong_route_mapping }}"
+      loop_control:
+        loop_var: route_entry
+
+    - name: Configure Kong plugins.
+      include_role:
+        name: ansible-kong
+      vars:
+        kong_task: plugin
+        kong_plugin_config:
+          name: "{{ plugin_entry.name }}"
+          service: "{{ plugin_entry.service }}"
+          route: "{{ plugin_entry.route }}"
+          config: "{{ plugin_entry.config }}"
+      with_items: "{{ kong_plugin_mapping }}"
+      loop_control:
+        loop_var: plugin_entry
+
+    - name: Configure Kong consumers.
+      include_role:
+        name: ansible-kong
+      vars:
+        kong_task: consumer
+        kong_consumer_config:
+          username: "{{ consumer_entry.username }}"
+          plugins: "{{ consumer_entry.plugins }}"
+      with_items: "{{ kong_consumer_mapping }}"
+      loop_control:
+        loop_var: consumer_entry

@@ -1,0 +1,403 @@
+
+
+file_and_dir_group: group_on_server
+
+service_environment: example
+service_network: wenet
+kong_volume: "kong_data_{{ service_environment }}"
+kong_konga_volume: "konga_data_{{ service_environment }}"
+
+kong_container_name: kong
+kong_postgres_database: kong
+kong_postgres_password: a_secure_password
+kong_postgres_username: user
+kong_user: kong
+
+kong_konga_container_name: konga
+
+apigateway_container_name: apigateway
+
+service_domain: platform domain
+
+
+kong_service_mapping:
+  - name: "hub"
+    url: "http://hub_url"
+  - name: "service-api"
+    url: "http://service_api_url"
+  - name: wenet-common_api
+    url: "common-api"
+  - name: "wenet-profile_manager"
+    url: "http://profile_manager_url"
+  - name: wenet-task_manager
+    url: "http://task_manager_url"
+  - name: wenet-interaction_protocol_engine
+    url: "http://interaction_protocol_engine_url"
+  - name: "apigateway"
+    url: "http://apigateway_url"
+  - name: wenet-incentive_server
+    url: "http://incentive_server_url"
+  - name: wenet-badgr_server
+    url:  "http://badger_server_url"
+  - name: kibana
+    url: "http://kibana_url"
+  - name: logger
+    url: "http://logger"
+  - name: "ilogbase"
+    url: "common-api"
+  - name: "ilogbase-batch"
+    url:  http://ilogbase_batch_url
+  - name: "ilogbase-data-api"
+    url:  http://ilogbase_data_api_url
+  - name: "ilogbase-challenges"
+    url:  http://ilogbase_challenges_url
+  - name: "ilogbase-questionnary"
+    url:  http://ilogbase_questionnary_url
+  - name: "ilogbase-statistics"
+    url:  http://ilogbase_statistic_url
+  - name: "ilogbase-social-relations"
+    url:  http://ilogbase_social_relations_url
+  - name: wenet-personal_context_builder
+    url: "http://personal_context_builder_url"
+  - name: wenet-personal_context_builder_realtime_api
+    url: "http://personal_context_builder_realtime_api_url"
+  - name: wenet-social_context_builder_web
+    url: "http://wenet-social_context_builder_web_url"
+
+
+kong_route_mapping:
+  - name: "hub"
+    service: "hub"
+    path: "/{{ service_environment }}/hub"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: false
+  - name: "hub_internal"
+    service: "hub"
+    path: "/{{ service_environment }}/hub/data"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: false
+  - name: "service-api_external"
+    service: "service-api"
+    path: "/{{ service_environment }}/service_external"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: "service-api_internal"
+    service: "service-api"
+    path: "/{{ service_environment }}/service"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: "apigateway"
+    service: "apigateway"
+    path: "/{{ service_environment }}/api"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-aks-for-help
+    service: wenet-ask-for-help
+    path:  "/{{ service_environment }}/bots/ask-for-help/callback"
+    host:  "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-profile_manager-route1
+    service: wenet-profile_manager
+    path:  "/{{ service_environment }}/profile_manager"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-task_manager
+    service: wenet-task_manager
+    path: "/{{ service_environment }}/task_manager"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-interaction_protocol_engine
+    service: wenet-interaction_protocol_engine
+    path: "/{{ service_environment }}/interaction_protocol_engine"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-incentive_server
+    service: wenet-incentive_server
+    path: "/{{ service_environment }}/incentive_server"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-badgr_server
+    service: wenet-badgr_server
+    path: "/{{ service_environment }}/badgr"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: kibana-route
+    service: kibana
+    path: "{{ kibana_base_path }}"
+    host:  "{{ service_domain }}"
+    preserve_host: true
+    strip_path: false
+  - name: logger-route
+    service: logger
+    path: "/{{ service_environment }}/logger"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: "wenet-ilogbase"
+    service: "ilogbase"
+    path: "/{{ service_environment }}/ilogbase"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: "wenet-ilogbase-batch"
+    service: "ilogbase-batch"
+    path: "/{{ service_environment }}/ilogbase_batch"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: "wenet-ilogbase-data-api"
+    service: "ilogbase-data-api"
+    path: "/{{ service_environment }}/ilogbase_data"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: "wenet-ilogbase-challenges"
+    service: "ilogbase-challenges"
+    path: "/{{ service_environment }}/ilogbase_challenges"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: "wenet-ilogbase-questionnary"
+    service: "ilogbase-questionnary"
+    path: "/{{ service_environment }}/ilogbase_questionnaire"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: "wenet-ilogbase-statistics"
+    service: "ilogbase-statistics"
+    path: "/{{ service_environment }}/ilogbase_statistics"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: "wenet-ilogbase-social-relations"
+    service: "ilogbase-social-relations"
+    path: "/{{ service_environment }}/ilogbase_social_relations"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-personal_context_builder
+    service: wenet-personal_context_builder
+    path: "/{{ service_environment }}/personal_context_builder"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-personal_context_builder_realtime_api
+    service: wenet-personal_context_builder_realtime_api
+    path: "/{{ service_environment }}/realtime_api"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-social_context_builder_web
+    service: wenet-social_context_builder_web
+    path: "/{{ service_environment }}/social_context_builder"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+  - name: wenet-common_api
+    service: wenet-common_api
+    path: "/{{ service_environment }}/streambase"
+    host: "{{ service_domain }}"
+    preserve_host: true
+    strip_path: true
+
+kong_plugin_mapping:
+  - name: "request-transformer"
+    service: "service-api"
+    route: "service-api_external"
+    config: {replace: {headers: ["x-wenet-source: app"]}, add: {headers: ["x-wenet-source: app"]}}
+  - name: "request-transformer"
+    service: "service-api"
+    route: "service-api_internal"
+    config: {replace: {headers: ["apikey: {{ service_api_key }}", "x-wenet-source: component"]}, add: {headers: ["apikey: {{ service_api_key }}",  "x-wenet-source: component"]}}
+  - name: "oauth2"
+    service : "apigateway"
+    route: "apigateway"
+    config: { scopes: ["id", "first_name", "middle_name", "last_name", "prefix_name", "suffix_name", "birthdate", "gender", "nationality", "locale", "phone_number", "email", "write_feed", "conversations", "id:read", "first_name:read", "last_name:read", "middle_name:read", "prefix_name:read", "suffix_name:read", "birth_date:read", "gender:read", "email:read", "phone_number:read", "locale:read", "avatar:read", "nationality:read", "occupation:read", "norms:read", "activities:read", "locations:read", "relationships:read", "behaviours:read", "materials:read", "competences:read", "meanings:read", "first_name:write", "last_name:write", "middle_name:write", "prefix_name:write", "suffix_name:write", "birth_date:write", "gender:write", "email:write", "phone_number:write", "locale:write", "avatar:write", "nationality:write", "occupation:write", "norms:write", "activities:write", "locations:write", "relationships:write", "behaviours:write", "materials:write", "competences:write", "meanings:write", "conversation:write", "data:write"], mandatory_scope: true, enable_authorization_code: true, provision_key: "{{ kong_oauth_provision_key }}", accept_http_if_already_terminated: true, refresh_token_ttl: 0 }
+  - name: "request-transformer"
+    service: "apigateway"
+    route: "apigateway"
+    config: {replace: {headers: ["x-wenet-source: oauth2_authorization_code"]}, add: {headers: ["x-wenet-source: oauth2_authorization_code"]}}
+  - name: "key-auth"
+    service: "service-api"
+    route: "service-api_internal"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "hub"
+    route: "hub_internal"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "logger"
+    route: "logger-route"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+
+  - name: "key-auth"
+    service: "wenet-profile_manager"
+    route: "wenet-profile_manager-route1"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "wenet-interaction_protocol_engine"
+    route: "wenet-interaction_protocol_engine"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "wenet-task_manager"
+    route: "wenet-task_manager"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "wenet-incentive_server"
+    route: "wenet-incentive_server"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "wenet-badgr_server"
+    route: "wenet-badgr_server"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "ilogbase"
+    route: "wenet-ilogbase"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "ilogbase-batch"
+    route: "wenet-ilogbase-batch"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+
+  - name: "key-auth"
+    service: "wenet-personal_context_builder"
+    route: "wenet-personal_context_builder"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "wenet-personal_context_builder_realtime_api"
+    route: "wenet-personal_context_builder_realtime_api"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+  - name: "key-auth"
+    service: "wenet-social_context_builder_web"
+    route: "wenet-social_context_builder_web"
+    config: {key_names: ["x-wenet-component-apikey"], hide_credentials: true}
+
+
+service_api_comp_auth_apikey: a_secure_key
+
+
+hub_com_auth_apikey: a_secure_key
+
+common_api_auth_apikey: a_secure_key
+
+
+profile_manager_auth_apikey: a_secure_key
+
+
+personal_contet_builder_auth_apikey: a_secure_key
+
+  
+social_context_builder_auth_apikey: a_secure_key
+
+
+task_manager_auth_apikey: a_secure_key
+
+
+interaction_protocol_engine_auth_apikey: a_secure_key
+
+
+incentive_server_auth_apikey: a_secure_key
+
+
+streambase_auth_apikey: a_secure_key
+
+
+badger_server_auth_apikey: a_secure_key
+
+
+logger_auth_apikey: a_secure_key
+
+
+ilogbase_apikey: a_secure_key
+
+
+kong_consumer_mapping: 
+
+  - username: 'service-api'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ service_api_comp_auth_apikey }}"
+  - username: 'hub'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ hub_com_auth_apikey }}" 
+
+  - username: 'common-api'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ common_api_auth_apikey }}"
+
+  - username: 'profile-manager'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ profile_manager_auth_apikey }}"
+
+  - username: 'personal-context-builder'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ personal_contet_builder_auth_apikey }}"
+
+  - username: 'social-context-builder'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ social_context_builder_auth_apikey }}"
+
+  - username: 'task-manager'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ task_manager_auth_apikey }}"
+
+  - username: 'interaction-protocol-engine'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ interaction_protocol_engine_auth_apikey }}"
+
+  - username: 'incentive-server'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ incentive_server_auth_apikey }}"
+
+  - username: 'streambase' 
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ streambase_auth_apikey }}"
+
+  - username: 'badger-server'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ badger_server_auth_apikey }}"
+
+  - username: 'logger'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ logger_auth_apikey }}"
+
+  - username: 'ilogbase'
+    plugins: 
+      - name: key-auth
+        parameters:
+          key: "{{ ilogbase_apikey }}"
+
